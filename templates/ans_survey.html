@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Answering survey {{data[2]}}</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+  </head>
+  <body style="background-color: rgb(239, 239, 239)">
+    <div
+      id="hello"
+      class="container shadow"
+      style="
+        background-color: white;
+        height: 100%;
+        padding-top: 10px;
+        padding-bottom: 20px;
+      "
+    >
+      <h1 style="text-align: center">START ANSWERING THE SURVEY!</h1>
+      <div style="margin-left: 20px; margin-top: 10px">
+        <p class="fs-5">
+          <span class="fw-bold text-capitalize">Survey Code:</span>
+          {{data['survey_details'][0]}}
+        </p>
+        <p class="fs-5">
+          <span class="fw-bold text-capitalize">surveyor:</span>
+          {{data['survey_details'][1]}}
+        </p>
+        <p class="fs-5">
+          <span class="fw-bold text-capitalize">Date Created:</span>
+          {{data['survey_details'][-1]}}
+        </p>
+      </div>
+      <div style="margin-left: 20px; margin-right: 20px">
+        <h2 style="text-align: center" class="fw-bold">
+          {{data['survey_details'][4]}}
+        </h2>
+        <p class="fs-5 fw-bold mb-2">Description:</p>
+        <p style="text-align: justify" class="fs-5">
+          {{data['survey_details'][5]}}
+        </p>
+      </div>
+
+      <div style="margin-left: 20px; margin-right: 20px">
+        <p class="fs-5 fw-bold">Start Answering The Below Questions:</p>
+        <div id="main_container"></div>
+        <button
+          id="btn_ans"
+          class="btn btn-success"
+          type="submit"
+          style="display: block; margin-top: 20px"
+        >
+          Answer Survey
+        </button>
+      </div>
+    </div>
+    <script>
+      let data = {{data | tojson}};
+
+      let main_container = document.getElementById('main_container');
+      state = [];
+      data["questions"].forEach(function (element) {
+        q = `          <p class="fs-5 mb-1 mt-3">
+          <span class="fw-bold">${element['order']}.</span>
+          ${element['Description']}
+        </p>`
+        let div = document.createElement('div')
+        div.innerHTML = q
+        if (element["questiontype_id"] == 2) {
+          let inp = document.createElement('textarea')
+          inp.className = 'form-control'
+          inp.required= true
+          inp.type = "text"
+          state.push({questiontype_id:2,inp_field:inp,question_id:element.QuestionId})
+          div.appendChild(inp)
+        }
+        else{
+          opts = []
+          element['options'].forEach(function(element2){
+            const in_div =document.createElement('div')
+            in_div.style="display:block;margin-bottom:5px"
+            const label = document.createElement('label');
+            label.textContent = element2['OptDesc'];
+            label.style ="margin-left:5px"
+            let inp = document.createElement('input')
+            inp.className = "form-check-input"
+            inp.type="radio"
+            inp.name = element['QuestionId']
+            inp.value= element2['OptDesc']
+            opts.push({opt_Id:element2["Id"],inp_field:inp})
+            in_div.appendChild(inp)
+            in_div.appendChild(label)
+            div.appendChild(in_div)
+          })
+          state.push({questiontype_id:1,inp_field:opts,question_id:element.QuestionId})
+
+        }
+        main_container.appendChild(div)
+      });
+      const fetchdata = async (data) => {
+        fetch("/ans_survey", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+          },
+          body: JSON.stringify(data),
+        })
+          .then((response) => response.text())
+          .then((data) =>
+            alert(`Successfully submitted`)
+          ).then(window.open("/", (name = self)));
+
+      };
+
+      resp = {}
+      resp['ans'] = []
+      let btn_ans = document.getElementById('btn_ans')
+      btn_ans.addEventListener('click',function(){
+        resp['survey_id'] = data['survey_details'][0]
+
+        state.forEach(function(element){
+          if (element['questiontype_id'] ==2){
+            resp['ans'].push({
+              question_id:element.question_id,
+              questiontype_id:2,
+              val:element.inp_field.value
+            })
+
+          }else{
+            element.inp_field.forEach(function(element2){
+              if (element2.inp_field.checked ==true){
+                resp.ans.push({
+                  question_id:element.question_id,
+                  questiontype_id:1,
+                  optId:element2.opt_Id
+                })
+
+
+              }
+            })
+          }
+        })
+
+
+        fetchdata(resp)
+
+      })
+    </script>
+  </body>
+</html>
